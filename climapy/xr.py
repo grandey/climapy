@@ -11,6 +11,10 @@ import warnings
 import xarray as xr
 
 
+__all__ = ['xr_check_lon_lat_match', 'xr_shift_lon', 'xr_area', 'xr_mask_bounds',
+           'xr_area_weighted_stat']
+
+
 def xr_check_lon_lat_match(xr_data_1, xr_data_2, lon_name='lon', lat_name='lat'):
     """
     Check whether longitude and latitude coordinates are equal.
@@ -41,20 +45,29 @@ def xr_shift_lon(xr_data, lon_min=-180., lon_name='lon'):
     Keyword arguments:
     xr_data -- an xarray Dataset or DataArray, with a longitude dimension
     lon_min -- the minimum longitude requested (default -180.)
-    lon_name -- the name of the longitude dimension and coordinate (default 'lon')
+    lon_name -- the name of the longitude dimension (default 'lon')
 
     Returns:
     Copy of input object, with longitudes shifted to the range lon_min to lon_min+360.
     """
     data = xr_data.copy()
-    lon = data[lon_name]  # longitude data
+    lon = data[lon_name]  # input longitude data
+    if np.all(np.diff(lon) > 0):  # check for mononotonic increase ...
+        increasing = True
+    elif np.all(np.diff(lon) < 0):  # ... or monotonic decrease
+        increasing = False
+    else:
+        raise ValueError('Input longitudes must increase or decrease monotonicically')
     add_360 = np.where(lon < lon_min, 360, 0)  # any longitudes outside valid range?
     sub_360 = np.where(lon >= (lon_min+360), -360, 0)
     if (add_360 + sub_360).any():
         data[lon_name] = lon + add_360 + sub_360  # correct longitudes to be within valid range
-        x = np.where(data[lon_name] ==
-                     data[lon_name].min())[0][0]  # location where minimum longitude value occurs
-        data = data.roll(lon=-x)  # shift data
+        if increasing:  # find location where minimum longitude value occurs
+            x = np.where(data[lon_name] == data[lon_name].min())[0][0]
+        else:  # if decreasing, find location where maximum longitude value occurs
+            x = np.where(data[lon_name] == data[lon_name].max())[0][0]
+        args = {lon_name: -x}
+        data = data.roll(**args)  # shift data
     return data
 
 

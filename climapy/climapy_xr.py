@@ -30,10 +30,8 @@ def xr_check_lon_lat_match(xr_data_1, xr_data_2, lon_name='lon', lat_name='lat')
     """
     result = True  # start by assuming True; modify to False if data fails tests
     if (xr_data_1[lon_name].values != xr_data_2[lon_name].values).any():
-        warnings.warn('Longitudes not equal')
         result = False
     if (xr_data_1[lat_name].values != xr_data_2[lat_name].values).any():
-        warnings.warn('Latitudes not equal')
         result = False
     return result
 
@@ -180,7 +178,7 @@ def xr_mask_bounds(xr_data, lon_bounds=(-180, 180), lat_bounds=(-90, 90), select
         lat_bounds = (-90, 90)
     # Shift longitudes for consistency with lon_bounds specification
     orig_lon_min = data[lon_name].values.min()  # current minimum longitude used later
-    data = xr_shift_lon(data, lon_min=lon_bounds[0])
+    data = xr_shift_lon(data, lon_min=lon_bounds[0], lon_name=lon_name)
     # Selecting inside bounds - lon and lat can be masked separately
     if select_how == 'inside':
         data = data.where((data[lon_name] >= lon_bounds[0]) &
@@ -193,15 +191,19 @@ def xr_mask_bounds(xr_data, lon_bounds=(-180, 180), lat_bounds=(-90, 90), select
                           (data[lon_name] > lon_bounds[1]) |
                           (data[lat_name] < lat_bounds[0]) |
                           (data[lat_name] > lat_bounds[1]))
-    # Warning if mask_how is not recognised
+    # Error if select_how is unrecognised value
     else:
-        warnings.warn('select_how="{}" is unrecognised option, so returning -1'.format(select_how))
-        return -1
+        raise ValueError('select_how must be "inside" or "outside"')
     # Shift longitudes back to original array
-    data = xr_shift_lon(data, lon_min=orig_lon_min)
+    data = xr_shift_lon(data, lon_min=orig_lon_min, lon_name=lon_name)
     # Check that longitude and latitude coords same as input
-    if xr_check_lon_lat_match(xr_data, data) is not True:
-        warnings.warn('Longitudes and/or latitudes not equal.')
+    if xr_check_lon_lat_match(xr_data, data, lon_name=lon_name, lat_name=lat_name) is not True:
+        warnings.warn('Input and output lon/lat coordinates not equal. Attempting to reindex.')
+        data = data.reindex_like(xr_data, method='nearest', tolerance=1e-3)
+        if xr_check_lon_lat_match(xr_data, data,
+                                  lon_name=lon_name, lat_name=lat_name) is not True:
+            raise RuntimeError('Input and output lon/lat coordinates not equal. '
+                               'Failed to solve by reindexing.')
     return data
 
 

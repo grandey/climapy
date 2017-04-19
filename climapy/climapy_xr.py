@@ -83,36 +83,57 @@ def xr_area(xr_data, lon_name='lon', lat_name='lat'):
     Returns:
     xarray DataArray named 'area', containing grid-cell areas.
     """
-    radius = 6371 * 1e3  # Earth's radius in m
+    radius = 6371 * 1e3  # Earth's mean radius in m
     lon = xr_data[lon_name].values
     lat = xr_data[lat_name].values
     nx, ny = len(lon), len(lat)
+    # Check that lon and lat values increase montoically
+    if np.all(np.diff(lon) > 0):  # lon: check for mononotonic increase ...
+        lon_increasing = True
+    elif np.all(np.diff(lon) < 0):  # ... or monotonic decrease
+        lon_increasing = False
+    else:
+        raise ValueError('Input longitudes must increase or decrease monotonicically')
+    if np.all(np.diff(lat) > 0):  # lat: check for mononotonic increase ...
+        lat_increasing = True
+    elif np.all(np.diff(lat) < 0):  # ... or monotonic decrease
+        lat_increasing = False
+    else:
+        raise ValueError('Input latitudes must increase or decrease monotonicically')
     # Longitude boundaries of grid cells, using linear interpolation
     lon_extended = np.concatenate([lon[[0]]-(lon[1]-lon[0]),  # extrapolate end elements
                                    lon[:],
                                    lon[[-1]]+(lon[-1]-lon[-2])])
-    for x in range(len(lon_extended)-1):
-        if lon_extended[x+1] < lon_extended[x]:
-            lon_extended[x+1] += 360  # correct lon_extended to increase monotonically
-    if np.diff(lon_extended).min() <= 0:
-        warnings.warn('Longitudes not increasing monotonically!')
+    if not (np.all(np.diff(lon_extended) > 0) or np.all(np.diff(lon_extended) < 0)):
+        raise RuntimeError('lon_extended not increasing/decreasing monotonically')
     lon_bounds = np.interp(np.arange(nx+1)+0.5, np.arange(nx+2),
                            lon_extended)  # longitude boundaries
-    # Zonal width of grid cells in terms of longitude
-    x_width = np.diff(lon_bounds)
-    if x_width.max() > (2*x_width.min()):
-        warnings.warn('Max longitude width ({}) > '
-                      '2x min longitude width ({})'.format(x_width.max(), x_width.min()))
     # Latitude boundaries of grid cells, using linear interpolation
-    if np.diff(lat).min() <= 0:
-        warnings.warn('Latitudes not increasing monotonically!')
-    lat_bounds = np.interp(np.arange(ny+1)-0.5, np.arange(ny), lat)
+    lat_extended = np.concatenate([lat[[0]]-(lat[1]-lat[0]),  # extrapolate end elements
+                                   lat[:],
+                                   lat[[-1]]+(lat[-1]-lat[-2])])
+    lat_bounds = np.interp(np.arange(ny+1)+0.5, np.arange(ny+2), lat_extended)
     if lat_bounds.min() < -90.:
         lat_bounds[np.where(lat_bounds < -90.)[0]] = -90.  # set min latitude bound to -90
     if lat_bounds.max() > 90.:
         lat_bounds[np.where(lat_bounds > 90.)[0]] = 90.  # set max latitude bound to 90
+    # Zonal width of grid cells in terms of longitude
+    if lon_increasing:
+        x_width = np.diff(lon_bounds)
+    else:  # if lon decreasing, reverse for calculation
+        x_width = np.diff(lon_bounds[::-1])[::-1]
+    if x_width.min() < 0:  # check that widths are all positive
+        raise RuntimeError('Negative value(s) encountered in x_width')
+    if x_width.max() > (2*x_width.min()):
+        warnings.warn('Max longitude width ({}) > '
+                      '2x min longitude width ({})'.format(x_width.max(), x_width.min()))
     # Meridional width of grid cells in terms of sin(latitude)
-    y_width = np.diff(np.sin(lat_bounds/180*np.pi))
+    if lat_increasing:
+        y_width = np.diff(np.sin(lat_bounds/180*np.pi))
+    else:  # if lat decreasing, reverse for calculation
+        y_width = np.diff(np.sin(lat_bounds[::-1]/180*np.pi))[::-1]
+    if y_width.min() < 0:  # check that widths are all positive
+        raise RuntimeError('Negative value(s) encountered in y_width')
     # Convert x_width and y_width into xarray DataArrays for automatic broadcasting
     x_width = xr.DataArray(x_width, coords={lon_name: lon}, dims=(lon_name, ))
     y_width = xr.DataArray(y_width, coords={lat_name: lat}, dims=(lat_name, ))
@@ -123,8 +144,8 @@ def xr_area(xr_data, lon_name='lon', lat_name='lat'):
     area = area.rename('area')
     area.attrs['units'] = 'm2'
     # Check that longitude and latitude coords same as input
-    if xr_check_lon_lat_match(xr_data, area) is not True:
-        warnings.warn('Longitudes and/or latitudes not equal.')
+    if xr_check_lon_lat_match(xr_data, area, lon_name=lon_name, lat_name=lat_name) is not True:
+        raise RuntimeError('Input and output lon/lat coordinates not equal.')
     # Sanity check: compare sum to surface area of a sphere
     correct_answer = radius**2 * 4 * np.pi
     perc_diff = 100 * (area.values.sum() - correct_answer) / correct_answer

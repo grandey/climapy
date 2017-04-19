@@ -1,5 +1,5 @@
 """
-climapy.xr:
+climapy.climapy_xr:
 Functions that act on xarray Datasets and DataArrays.
 
 Author:

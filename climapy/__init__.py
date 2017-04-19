@@ -6,4 +6,4 @@ Author:
 Benjamin S. Grandey, 2017
 """
 
-from .xr import *
+from .climapy_xr import *

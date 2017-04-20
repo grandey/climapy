@@ -221,25 +221,22 @@ def xr_area_weighted_stat(xr_data, stat='mean', lon_bounds=None, lat_bounds=None
     lat_name -- the name of the longitude dimension and coordinate (default 'lon')
 
     Returns:
-    Area-weighted mean or sum
+    Area-weighted mean or sum as an xarray Dataset or DataArray
     """
-    # Apply region masking?
-    if (lon_bounds is not None) or (lat_bounds is not None):
-        data = xr_mask_bounds(xr_data, lon_bounds=lon_bounds, lat_bounds=lat_bounds,
-                              select_how='inside', lon_name=lon_name, lat_name=lat_name)
-    else:
-        data = xr_data.copy()
-    # Get grid cell area and double-check that longitudes and latitudes match data exactly
+    # Get grid cell area
     area = xr_area(xr_data, lon_name=lon_name, lat_name=lat_name)
-    if xr_check_lon_lat_match(xr_data, area) is not True:
-        warnings.warn('Longitudes and/or latitudes not equal.')
+    # Apply region masking to area
+    if (lon_bounds is not None) or (lat_bounds is not None):
+        area = xr_mask_bounds(area, lon_bounds=lon_bounds, lat_bounds=lat_bounds,
+                              select_how='inside', lon_name=lon_name, lat_name=lat_name)
+    # Double-check that longitudes and latitudes match data exactly
+    if xr_check_lon_lat_match(xr_data, area, lon_name=lon_name, lat_name=lat_name) is not True:
+        raise RuntimeError('Longitude and/or latitude coordinates not equal.')
     # Calculation depends on requested statistic
     if stat == 'sum':
-        data = (data * area).sum(dim=[lon_name, lat_name])
+        data = (xr_data * area).sum(dim=[lon_name, lat_name])
     elif stat == 'mean':
-        data = (data * area).sum(dim=[lon_name, lat_name]) / area.sum(dim=[lon_name, lat_name])
+        data = (xr_data * area).sum(dim=[lon_name, lat_name]) / area.sum(dim=[lon_name, lat_name])
     else:
-        warnings.warn('stat="{}" is unrecognised option, so returning -1'.format(stat))
-        return -1
-    data = float(data.values)  # get value
+        raise ValueError('stat="{}" unrecognised; should be "mean" or "sum"'.format(stat))
     return data

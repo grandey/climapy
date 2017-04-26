@@ -16,7 +16,7 @@ import climapy
 from copy import deepcopy
 import numpy as np
 import os
-#import pytest
+import pytest
 import xarray as xr
 
 
@@ -212,7 +212,50 @@ class TestDataDict:
 
 class TestCheckLonLatMatch:
     """Test xr_check_lon_lat_match()"""
-    pass
+
+    def test_against_data01(self):
+        ref_data = data_dict['data01']
+        for key, data in data_dict.items():
+            if key == 'ds_renamed':
+                with pytest.raises(KeyError):
+                    climapy.xr_check_lon_lat_match(ref_data, data)
+            elif key in ['data01', 'da_ts', 'da_precl', 'ds_transposed']:
+                assert climapy.xr_check_lon_lat_match(ref_data, data)
+            else:
+                assert climapy.xr_check_lon_lat_match(ref_data, data) is False
+
+    def test_against_shift_lon(self):
+        ref_data = data_dict['ds_shift_lon']
+        for key, data in data_dict.items():
+            if key == 'ds_renamed':
+                with pytest.raises(KeyError):
+                    climapy.xr_check_lon_lat_match(ref_data, data)
+            elif key == 'ds_shift_lon':
+                assert climapy.xr_check_lon_lat_match(ref_data, data)
+            else:
+                assert climapy.xr_check_lon_lat_match(ref_data, data) is False
+
+    def test_against_irr_both(self):
+        ref_data = data_dict['ds_irr_both']
+        for key, data in data_dict.items():
+            if key == 'ds_renamed':
+                with pytest.raises(KeyError):
+                    climapy.xr_check_lon_lat_match(ref_data, data)
+            elif key == 'ds_irr_both':
+                assert climapy.xr_check_lon_lat_match(ref_data, data)
+            else:
+                assert climapy.xr_check_lon_lat_match(ref_data, data) is False
+
+    def test_against_renamed(self):
+        ref_data = data_dict['ds_renamed']
+        for key, data in data_dict.items():
+            if key == 'ds_renamed':
+                assert climapy.xr_check_lon_lat_match(ref_data, data,
+                                                      lon_name='longitude', lat_name='latitude')
+            else:
+                with pytest.raises(KeyError):
+                    climapy.xr_check_lon_lat_match(ref_data, data,
+                                                   lon_name='longitude', lat_name='latitude')
 
 
 class TestShiftLon:

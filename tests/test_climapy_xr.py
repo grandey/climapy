@@ -323,7 +323,43 @@ class TestShiftLon:
 
 class TestArea:
     """Test xr_area()"""
-    pass
+
+    def test_incorrect_lon_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_area(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_area(data_dict['data01'], lon_name='longitude')
+
+    def test_incorrect_lat_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_area(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_area(data_dict['data01'], lat_name='latitude')
+
+    def test_non_monotonic(self):
+        with pytest.raises(ValueError):
+            climapy.xr_area(data_dict['ds_strange'])
+
+    def test_area_values(self):
+        cdo_values = cdo_dict['gridarea']['cell_area'].values
+        area_values = climapy.xr_area(data_dict['data01']).values
+        perc_diff = (area_values - cdo_values) / cdo_values * 100  # % difference
+        assert np.abs(perc_diff).max() < 0.1  # check that % differences are small
+
+    def test_global_sum(self):
+        cdo_sum = cdo_dict['gridarea']['cell_area'].values.sum()
+        for key, data in data_dict.items():
+            if key != 'ds_strange':
+                if key == 'ds_renamed':
+                    area_sum = climapy.xr_area(data_dict[key], lon_name='longitude',
+                                               lat_name='latitude').values.sum()
+                else:
+                    area_sum = climapy.xr_area(data_dict[key]).values.sum()
+                perc_diff = (area_sum - cdo_sum) / cdo_sum * 100  # % difference
+                if key in ['ds_irr_lon', 'ds_irr_lat', 'ds_irr_both']:
+                    assert abs(perc_diff) < 0.1  # more leeway allowed for irregular coords
+                else:
+                    assert abs(perc_diff) < 0.001, AssertionError(key)
 
 
 class TestMaskBounds:

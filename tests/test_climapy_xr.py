@@ -260,7 +260,65 @@ class TestCheckLonLatMatch:
 
 class TestShiftLon:
     """Test xr_shift_lon()"""
-    pass
+
+    def test_incorrect_lon_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_shift_lon(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_shift_lon(data_dict['data01'], lon_name='longitude')
+
+    def test_non_monotonic(self):
+        with pytest.raises(ValueError):
+            climapy.xr_shift_lon(data_dict['ds_strange'])
+
+    def test_default_shift(self):
+        for key, data in data_dict.items():
+            if key != 'ds_strange':
+                if key == 'ds_renamed':
+                    new_lon = climapy.xr_shift_lon(data, lon_name='longitude')['longitude'].values
+                elif key in ['ds_rev_lon', 'ds_rev_both']:
+                    new_lon = climapy.xr_shift_lon(data)['lon'].values[::-1]
+                else:
+                    new_lon = climapy.xr_shift_lon(data)['lon'].values
+                assert new_lon.min() == new_lon[0]
+                assert new_lon.max() == new_lon[-1]
+                if key in ['ds_irr_lon', 'ds_irr_both']:
+                    assert -180 <= new_lon[0] <= -177  # allow some leeway for irreg longitudes
+                    assert 177 <= new_lon[-1] <= 180
+                else:
+                    assert new_lon[0] == -180, AssertionError(key)
+                    assert new_lon[-1] == 177.5, AssertionError(key)
+
+    def test_shift_of_m90(self):
+        for key, data in data_dict.items():
+            if key != 'ds_strange':
+                if key == 'ds_renamed':
+                    new_lon = climapy.xr_shift_lon(data, lon_min=-90,
+                                                   lon_name='longitude')['longitude'].values
+                elif key in ['ds_rev_lon', 'ds_rev_both']:
+                    new_lon = climapy.xr_shift_lon(data, lon_min=-90)['lon'].values[::-1]
+                else:
+                    new_lon = climapy.xr_shift_lon(data, lon_min=-90)['lon'].values
+                assert new_lon.min() == new_lon[0]
+                assert new_lon.max() == new_lon[-1]
+                if key in ['ds_irr_lon', 'ds_irr_both']:
+                    assert -90 <= new_lon[0] <= -87  # allow some leeway for irreg longitudes
+                    assert 267 <= new_lon[-1] <= 270
+                else:
+                    assert new_lon[0] == -90, AssertionError(key)
+                    assert new_lon[-1] == 267.5, AssertionError(key)
+
+    def test_shift_back(self):
+        for key, data in data_dict.items():
+            if key not in ['ds_strange', 'ds_renamed']:
+                orig_lon_min = data['lon'].values.min()  # original min longitude
+                for lon_min in [-180., -270., 0., 90.]:  # try different lon_min values
+                    new_data = climapy.xr_shift_lon(data, lon_min=lon_min)
+                    new_data = climapy.xr_shift_lon(new_data,
+                                                    lon_min=orig_lon_min)  # shift back
+                    new_data = new_data.reindex_like(data, method='nearest',
+                                                     tolerance=1e-3)  # correct small errors
+                    assert new_data.equals(data)  # compare to original
 
 
 class TestArea:
@@ -280,5 +338,5 @@ class TestAreaWeightedStat:
 
 class TestDataUnchanged:
     """Check that data_dict has not been changed inplace."""
-    def test_one(self):
+    def test_data_unchanged(self):
         assert check_data_dict_identical(data_dict, copy_dict)

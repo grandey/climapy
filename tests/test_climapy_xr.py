@@ -130,7 +130,10 @@ def load_cdo_results():
     for region in load_region_bounds_dict().keys():
         for suffix in ['', '_area', '_fldmean']:
             key = region + suffix
-            if key != 'Glb':  # data01_Glb.nc does not exist
+            if key == 'Glb':  # for globe is data01.nc
+                cdo_dict[key] = xr.open_dataset(cdo_dir+'../data01.nc',
+                                                decode_times=False, autoclose=True)
+            else:
                 cdo_dict[key] = xr.open_dataset(cdo_dir+'data01_'+key+'.nc',
                                                 decode_times=False, autoclose=True)
     # Return dictioary of data
@@ -316,8 +319,8 @@ class TestShiftLon:
                     new_data = climapy.xr_shift_lon(data, lon_min=lon_min)
                     new_data = climapy.xr_shift_lon(new_data,
                                                     lon_min=orig_lon_min)  # shift back
-                    new_data = new_data.reindex_like(data, method='nearest',
-                                                     tolerance=1e-3)  # correct small errors
+                    # Correct small diffs in coords before comparing
+                    new_data = new_data.reindex_like(data, method='nearest', tolerance=1e-3)
                     assert new_data.equals(data)  # compare to original
 
 
@@ -357,14 +360,62 @@ class TestArea:
                     area_sum = climapy.xr_area(data_dict[key]).values.sum()
                 perc_diff = (area_sum - cdo_sum) / cdo_sum * 100  # % difference
                 if key in ['ds_irr_lon', 'ds_irr_lat', 'ds_irr_both']:
-                    assert abs(perc_diff) < 0.1  # more leeway allowed for irregular coords
+                    assert abs(perc_diff) < 1  # more leeway allowed for irregular coords
                 else:
                     assert abs(perc_diff) < 0.001, AssertionError(key)
 
 
 class TestMaskBounds:
     """Test xr_mask_bounds()"""
-    pass
+
+    def test_incorrect_lon_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_mask_bounds(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_mask_bounds(data_dict['data01'], lon_name='longitude')
+
+    def test_incorrect_lat_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_mask_bounds(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_mask_bounds(data_dict['data01'], lat_name='latitude')
+
+    def test_non_monotonic(self):
+        with pytest.raises(ValueError):
+            climapy.xr_mask_bounds(data_dict['ds_strange'])
+
+    def test_inside_values(self):
+        for region, bounds in load_region_bounds_dict().items():
+            cdo_data = cdo_dict[region]
+            lon_bounds, lat_bounds = bounds
+            mask_data = climapy.xr_mask_bounds(data_dict['data01'],
+                                               lon_bounds=lon_bounds, lat_bounds=lat_bounds,
+                                               select_how='inside')
+            mask_data = mask_data.dropna(dim='lon',  # drop NaN rows/columns, like CDO
+                                         how='all').dropna(dim='lat', how='all')
+            mask_data = climapy.xr_shift_lon(mask_data,  # shift lons for consistency with cdo_data
+                                             lon_min=cdo_data['lon'].min())
+            perc_diff = ((mask_data['TS'].values - cdo_data['TS'].values) /
+                         cdo_data['TS'].values) * 100  # % difference in 'TS' variable
+            assert np.abs(perc_diff).max() < 1e-9  # check that differences very small
+
+    def test_outside_plus_inside(self):
+        """Test how='outside' by checking that input data can be reconstructed."""
+        for region, bounds in load_region_bounds_dict().items():
+            lon_bounds, lat_bounds = bounds
+            for key in ['data01', 'ds_shift_lon', 'ds_rev_both', 'ds_irr_both']:
+                outside_data = climapy.xr_mask_bounds(data_dict[key],
+                                                      lon_bounds=lon_bounds, lat_bounds=lat_bounds,
+                                                      select_how='outside')['TS']  # use 'TS' var
+                inside_data = climapy.xr_mask_bounds(data_dict[key],
+                                                     lon_bounds=lon_bounds, lat_bounds=lat_bounds,
+                                                     select_how='inside')['TS']
+                outside_plus_inside = (np.nan_to_num(outside_data.values) +
+                                       np.nan_to_num(inside_data.values))
+                diff_from_input = outside_plus_inside - data_dict[key]['TS'].values
+                assert np.abs(diff_from_input).max() == 0
+
+    # Implicit further testing of xr_mask_bounds() by TestAreaWeightedStat below...
 
 
 class TestAreaWeightedStat:

@@ -24,6 +24,9 @@ import xarray as xr
 # Part 1: prerequisite functions
 # ------------------------------
 
+np_rand = np.random.RandomState(2435)  # seed random numbers, for reproducibility
+
+
 def prepare_test_data():
     """
     Load data01.nc and manipulate to create additional test data.
@@ -43,14 +46,20 @@ def prepare_test_data():
     # Dataset with *shifted* longitudes
     ds_shift_lon = climapy.xr_shift_lon(data01.copy())
     data_dict['ds_shift_lon'] = ds_shift_lon.copy()
-    # Datasets with *reversed* lon/lat coordinates
+    # Datasets with *reversed* lon/lat coordinates and data
     ds_rev_lon = data01.copy()
     ds_rev_lon['lon'].values = ds_rev_lon['lon'].values[::-1]
+    for var_name in ['TS', 'PRECL']:  # array order: time, lat, lon
+        ds_rev_lon[var_name].values = ds_rev_lon[var_name].values[:, :, ::-1]
     ds_rev_lat = data01.copy()
     ds_rev_lat['lat'].values = ds_rev_lat['lat'].values[::-1]
+    for var_name in ['TS', 'PRECL']:
+        ds_rev_lat[var_name].values = ds_rev_lat[var_name].values[:, ::-1, :]
     ds_rev_both = data01.copy()
     ds_rev_both['lat'].values = ds_rev_both['lat'].values[::-1]
     ds_rev_both['lon'].values = ds_rev_both['lon'].values[::-1]
+    for var_name in ['TS', 'PRECL']:
+        ds_rev_both[var_name].values = ds_rev_both[var_name].values[:, ::-1, ::-1]
     data_dict['ds_rev_lon'] = ds_rev_lon.copy()
     data_dict['ds_rev_lat'] = ds_rev_lat.copy()
     data_dict['ds_rev_both'] = ds_rev_both.copy()
@@ -65,10 +74,10 @@ def prepare_test_data():
     # Datasets with slightly *irregular* lon/lat coords, yet still monotonic
     nx, ny = data01['lon'].size, data01['lat'].size
     lon_irr = (data01['lon'].values +
-               np.random.uniform(low=-0.5, high=0.5, size=nx))  # add small amount of noise
+               np_rand.uniform(low=-0.5, high=0.5, size=nx))  # add small amount of noise
     lon_irr[[0, -1]] = data01['lon'].values[[0, -1]]  # keep end values unchanged
     lat_irr = (data01['lat'].values +
-               np.random.uniform(low=-0.5, high=0.5, size=ny))
+               np_rand.uniform(low=-0.5, high=0.5, size=ny))
     lat_irr[[0, -1]] = data01['lat'].values[[0, -1]]
     ds_irr_lon = data01.copy()
     ds_irr_lon['lon'].values = lon_irr.copy()
@@ -82,9 +91,9 @@ def prepare_test_data():
     data_dict['ds_irr_both'] = ds_irr_both.copy()
     # Dataset with *strange* lon/lat coords - very irregular and not monotonic
     lon_strange = (data01['lon'].values +
-                   np.random.uniform(low=-10, high=10, size=nx))  # add large amount of noise
+                   np_rand.uniform(low=-10, high=10, size=nx))  # add large amount of noise
     lon_strange[[0, -1]] = data01['lon'].values[[0, -1]]  # keep end values unchanged
-    lat_strange = (data01['lat'].values + np.random.uniform(low=-10, high=10, size=ny))
+    lat_strange = (data01['lat'].values + np_rand.uniform(low=-10, high=10, size=ny))
     lat_strange[[0, -1]] = data01['lat'].values[[0, -1]]  # keep end values unchanged
     ds_strange = data01.copy()
     ds_strange['lon'].values = lon_strange.copy()
@@ -168,21 +177,21 @@ cdo_dict = load_cdo_results()  # CDO-derived "truths"
 # --------------------
 
 class TestDataDict:
-    """Check that input data disctionary has been prepared successfully."""
+    """Check that input data dictionary has been prepared successfully."""
 
     def test_keys(self):
-        assert set(data_dict.keys()) == set(['data01', 'da_ts', 'da_precl', 'ds_shift_lon',
-                                             'ds_rev_lon', 'ds_rev_lat', 'ds_rev_both',
-                                             'ds_transposed', 'ds_renamed',
-                                             'ds_irr_lon', 'ds_irr_lat', 'ds_irr_both',
-                                             'ds_strange'])
+        assert set(data_dict.keys()) == {'data01', 'da_ts', 'da_precl', 'ds_shift_lon',
+                                         'ds_rev_lon', 'ds_rev_lat', 'ds_rev_both',
+                                         'ds_transposed', 'ds_renamed',
+                                         'ds_irr_lon', 'ds_irr_lat', 'ds_irr_both',
+                                         'ds_strange'}
 
     def test_type(self):
         for key, data in data_dict.items():
             if key[0:3] == 'da_':
-                assert isinstance(data, xr.core.dataarray.DataArray)
+                assert isinstance(data, xr.DataArray)
             else:
-                assert isinstance(data, xr.core.dataset.Dataset)
+                assert isinstance(data, xr.Dataset)
 
     def test_lon_ends(self):
         for key, data in data_dict.items():
@@ -346,8 +355,8 @@ class TestArea:
     def test_area_values(self):
         cdo_values = cdo_dict['gridarea']['cell_area'].values
         area_values = climapy.xr_area(data_dict['data01']).values
-        perc_diff = (area_values - cdo_values) / cdo_values * 100  # % difference
-        assert np.abs(perc_diff).max() < 0.1  # check that % differences are small
+        rel_diff = (area_values - cdo_values) / cdo_values  # relative difference
+        assert np.abs(rel_diff).max() < 1e-3  # check that diffs are small
 
     def test_global_sum(self):
         cdo_sum = cdo_dict['gridarea']['cell_area'].values.sum()
@@ -358,11 +367,12 @@ class TestArea:
                                                lat_name='latitude').values.sum()
                 else:
                     area_sum = climapy.xr_area(data_dict[key]).values.sum()
-                perc_diff = (area_sum - cdo_sum) / cdo_sum * 100  # % difference
-                if key in ['ds_irr_lon', 'ds_irr_lat', 'ds_irr_both']:
-                    assert abs(perc_diff) < 1  # more leeway allowed for irregular coords
+                rel_diff = (area_sum - cdo_sum) / cdo_sum  # relative difference
+                if key in ['ds_irr_lon', 'ds_irr_lat',
+                           'ds_irr_both']:  # more leeway allowed for irregular coords
+                    assert abs(rel_diff) < 1e-3, AssertionError(key)
                 else:
-                    assert abs(perc_diff) < 0.001, AssertionError(key)
+                    assert abs(rel_diff) < 1e-6, AssertionError(key)
 
 
 class TestMaskBounds:
@@ -395,9 +405,9 @@ class TestMaskBounds:
                                          how='all').dropna(dim='lat', how='all')
             mask_data = climapy.xr_shift_lon(mask_data,  # shift lons for consistency with cdo_data
                                              lon_min=cdo_data['lon'].min())
-            perc_diff = ((mask_data['TS'].values - cdo_data['TS'].values) /
-                         cdo_data['TS'].values) * 100  # % difference in 'TS' variable
-            assert np.abs(perc_diff).max() < 1e-9  # check that differences very small
+            rel_diff = ((mask_data['TS'].values - cdo_data['TS'].values) /
+                        cdo_data['TS'].values)  # relative difference in 'TS' variable
+            assert np.abs(rel_diff).max() < 1e-12  # check that differences very small
 
     def test_outside_plus_inside(self):
         """Test how='outside' by checking that input data can be reconstructed."""
@@ -406,13 +416,13 @@ class TestMaskBounds:
             for key in ['data01', 'ds_shift_lon', 'ds_rev_both', 'ds_irr_both']:
                 outside_data = climapy.xr_mask_bounds(data_dict[key],
                                                       lon_bounds=lon_bounds, lat_bounds=lat_bounds,
-                                                      select_how='outside')['TS']  # use 'TS' var
+                                                      select_how='outside')['PRECL']
                 inside_data = climapy.xr_mask_bounds(data_dict[key],
                                                      lon_bounds=lon_bounds, lat_bounds=lat_bounds,
-                                                     select_how='inside')['TS']
+                                                     select_how='inside')['PRECL']
                 outside_plus_inside = (np.nan_to_num(outside_data.values) +
                                        np.nan_to_num(inside_data.values))
-                diff_from_input = outside_plus_inside - data_dict[key]['TS'].values
+                diff_from_input = outside_plus_inside - data_dict[key]['PRECL'].values
                 assert np.abs(diff_from_input).max() == 0
 
     # Implicit further testing of xr_mask_bounds() by TestAreaWeightedStat below...
@@ -420,7 +430,67 @@ class TestMaskBounds:
 
 class TestAreaWeightedStat:
     """Test xr_area_weighted_stat()"""
-    pass
+
+    def test_incorrect_lon_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_area_weighted_stat(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_area_weighted_stat(data_dict['data01'], lon_name='longitude')
+
+    def test_incorrect_lat_name(self):
+        with pytest.raises(KeyError):
+            climapy.xr_area_weighted_stat(data_dict['ds_renamed'])
+        with pytest.raises(KeyError):
+            climapy.xr_area_weighted_stat(data_dict['data01'], lat_name='latitude')
+
+    def test_non_monotonic(self):
+        with pytest.raises(ValueError):
+            climapy.xr_area_weighted_stat(data_dict['ds_strange'])
+
+    def test_sum_of_area(self):
+        for region, bounds in load_region_bounds_dict().items():
+            lon_bounds, lat_bounds = bounds
+            cdo_area = cdo_dict[region+'_area']['cell_area'].values.flatten()[0]  # "truth"
+            for key, data in data_dict.items():
+                if key not in ['ds_strange', 'da_ts', 'da_precl']:
+                    if key == 'ds_renamed':
+                        lon_name, lat_name = 'longitude', 'latitude'
+                    else:
+                        lon_name, lat_name = 'lon', 'lat'
+                    ds_ones = data_dict[key]['TS'] * 0 + 1  # set values to 1
+                    area = climapy.xr_area_weighted_stat(ds_ones, stat='sum',
+                                                         lon_bounds=lon_bounds,
+                                                         lat_bounds=lat_bounds,
+                                                         lon_name=lon_name,
+                                                         lat_name=lat_name).values[0]  # time 0
+                    rel_diff = (cdo_area - area) / cdo_area  # relative diff
+                    if key in ['ds_irr_lon', 'ds_irr_lat', 'ds_irr_both']:
+                        if region in ['Zon', 'Mer']:  # irregular coords need more leeway
+                            assert abs(rel_diff) < 0.5, AssertionError(region, key)
+                        else:
+                            assert abs(rel_diff) < 0.1, AssertionError(region, key)
+                    else:  # stricter for regular coords
+                        assert abs(rel_diff) < 1e-3, AssertionError(region, key)
+
+    def test_area_weighted_mean(self):
+        for region, bounds in load_region_bounds_dict().items():
+            lon_bounds, lat_bounds = bounds
+            cdo_awm = cdo_dict[region+'_fldmean']['PRECL'].values.flatten()
+            for key, data in data_dict.items():
+                if key not in ['ds_strange', 'da_precl', 'da_ts',
+                               'ds_irr_lon', 'ds_irr_lat', 'ds_irr_both']:
+                    if key == 'ds_renamed':
+                        lon_name, lat_name = 'longitude', 'latitude'
+                    else:
+                        lon_name, lat_name = 'lon', 'lat'
+                    awm = climapy.xr_area_weighted_stat(data_dict[key],
+                                                        lon_bounds=lon_bounds,
+                                                        lat_bounds=lat_bounds,
+                                                        lon_name=lon_name,
+                                                        lat_name=lat_name)['PRECL'].values
+                    rel_diff = (awm - cdo_awm) / cdo_awm  # relative diff at each timestep
+                    max_rel_diff = np.abs(rel_diff).max()
+                    assert abs(max_rel_diff) < 1e-3, AssertionError(region, key)
 
 
 class TestDataUnchanged:

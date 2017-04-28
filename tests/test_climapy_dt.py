@@ -4,14 +4,9 @@ test_climapy_dt:
     
 Usage:
     Designed for use with pytest.
-    
-Contents:
-    1. Prerequisite functions.
-    2. Loading of test data.
-    3. The test classes
 
-History:
-    2017-04 - Benjamin S. Grandey
+Author:
+    Benjamin S. Grandey, 2017
 """
 
 import climapy

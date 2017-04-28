@@ -2,8 +2,8 @@
 climapy.climapy_dt:
     Functions associated with the dates and times, especially numpy.datetime64 objects.
 
-History:
-    2017-04 - Benjamin S. Grandey
+Author:
+    Benjamin S. Grandey, 2017
 """
 
 import collections
@@ -15,14 +15,14 @@ __all__ = ['dt_convert_to_datetime64', ]
 
 def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day'):
     """
-    Convert to array of datetime64 objects.
+    Convert numbers to array of datetime64 objects.
     
     Args:
         data: single float/int or an array (or other iterable) of floats/ints to be converted.
-                Negative values cannot be accepted.
+            Negative values cannot be accepted.
         units: string describing units of input data (default: 'days since 1-1-1 00:00:00').
         calendar: string describing calendar of input data.  Valid calendar options are
-                '365_day' (default), 'no_leap' (equivalent to default), and 'gregorian'.
+            '365_day' (default), 'no_leap' (equivalent to default), and 'gregorian'.
 
     Returns:
         single datetime64 object or numpy.array of dtype=datetime64.

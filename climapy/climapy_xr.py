@@ -1,9 +1,9 @@
 """
 climapy.climapy_xr:
-Functions that act on xarray Datasets and DataArrays.
+    Functions that act on xarray Datasets and DataArrays.
 
 Author:
-Benjamin S. Grandey, 2017
+    Benjamin S. Grandey, 2017
 """
 
 import numpy as np
@@ -19,14 +19,14 @@ def xr_check_lon_lat_match(xr_data_1, xr_data_2, lon_name='lon', lat_name='lat')
     """
     Check whether longitude and latitude coordinates are equal.
 
-    Keyword arguments:
-    xr_data_1 -- first xarray Dataset or DataArray, with longitude and latitude dimensions
-    xr_data_2 -- second xarray Dataset or DataArray, with longitude and latitude dimensions
-    lon_name -- the name of the longitude dimension and coordinate (default 'lon')
-    lat_name -- the name of the longitude dimension and coordinate (default 'lon')
+    Args:
+        xr_data_1: first xarray Dataset or DataArray, with longitude and latitude dimensions
+        xr_data_2: second xarray Dataset or DataArray, with longitude and latitude dimensions
+        lon_name: the name of the longitude dimension and coordinate (default 'lon')
+        lat_name: the name of the longitude dimension and coordinate (default 'lon')
 
     Returns:
-    True or False
+        True or False
     """
     result = True  # start by assuming True; modify to False if data fails tests
     if (xr_data_1[lon_name].values != xr_data_2[lon_name].values).any():
@@ -40,22 +40,22 @@ def xr_shift_lon(xr_data, lon_min=-180., lon_name='lon'):
     """
     Shift longitudes of an xarray Dataset or DataArray.
 
-    Keyword arguments:
-    xr_data -- an xarray Dataset or DataArray, with a longitude dimension
-    lon_min -- the minimum longitude requested (default -180.)
-    lon_name -- the name of the longitude dimension (default 'lon')
+    Args:
+        xr_data: an xarray Dataset or DataArray, with a longitude dimension
+        lon_min: the minimum longitude requested (default -180.)
+        lon_name: the name of the longitude dimension (default 'lon')
 
     Returns:
-    Copy of input object, with longitudes shifted to the range lon_min to lon_min+360.
+        Copy of input object, with longitudes shifted to the range lon_min to lon_min+360.
     """
     data = xr_data.copy()
     lon = data[lon_name]  # input longitude data
-    if np.all(np.diff(lon) > 0):  # check for mononotonic increase ...
+    if np.all(np.diff(lon) > 0):  # check for monotonic increase ...
         increasing = True
     elif np.all(np.diff(lon) < 0):  # ... or monotonic decrease
         increasing = False
     else:
-        raise ValueError('Input longitudes must increase or decrease monotonicically')
+        raise ValueError('Input longitudes must increase or decrease monotonically')
     add_360 = np.where(lon < lon_min, 360, 0)  # any longitudes outside valid range?
     sub_360 = np.where(lon >= (lon_min+360), -360, 0)
     if (add_360 + sub_360).any():
@@ -73,31 +73,31 @@ def xr_area(xr_data, lon_name='lon', lat_name='lat'):
     """
     Calculate grid-cell areas of an xarray Dataset or DataArray.
 
-    Keyword arguments:
-    xr_data -- an xarray Dataset or DataArray, with lon and lat dimensions
-    lon_name -- the name of the longitude dimension and coordinate (default 'lon')
-    lat_name -- the name of the longitude dimension and coordinate (default 'lon')
+    Args:
+        xr_data: an xarray Dataset or DataArray, with lon and lat dimensions
+        lon_name: the name of the longitude dimension and coordinate (default 'lon')
+        lat_name: the name of the longitude dimension and coordinate (default 'lon')
 
     Returns:
-    xarray DataArray named 'area', containing grid-cell areas.
+        xarray DataArray named 'area', containing grid-cell areas.
     """
     radius = 6371 * 1e3  # Earth's mean radius in m
     lon = xr_data[lon_name].values
     lat = xr_data[lat_name].values
     nx, ny = len(lon), len(lat)
-    # Check that lon and lat values increase montoically
-    if np.all(np.diff(lon) > 0):  # lon: check for mononotonic increase ...
+    # Check that lon and lat values increase monotonically
+    if np.all(np.diff(lon) > 0):  # lon: check for monotonic increase ...
         lon_increasing = True
     elif np.all(np.diff(lon) < 0):  # ... or monotonic decrease
         lon_increasing = False
     else:
-        raise ValueError('Input longitudes must increase or decrease monotonicically')
-    if np.all(np.diff(lat) > 0):  # lat: check for mononotonic increase ...
+        raise ValueError('Input longitudes must increase or decrease monotonically')
+    if np.all(np.diff(lat) > 0):  # lat: check for monotonic increase ...
         lat_increasing = True
     elif np.all(np.diff(lat) < 0):  # ... or monotonic decrease
         lat_increasing = False
     else:
-        raise ValueError('Input latitudes must increase or decrease monotonicically')
+        raise ValueError('Input latitudes must increase or decrease monotonically')
     # Longitude boundaries of grid cells, using linear interpolation
     lon_extended = np.concatenate([lon[[0]]-(lon[1]-lon[0]),  # extrapolate end elements
                                    lon[:],
@@ -159,16 +159,17 @@ def xr_mask_bounds(xr_data, lon_bounds=(-180, 180), lat_bounds=(-90, 90), select
     """
     Select inside/outside specified region bounds, and mask elsewhere.
 
-    Keyword arguments:
-    xr_data -- an xarray Dataset or DataArray, with longitude and latitude dimensions
-    lon_bounds -- tuple/list containing longitude bounds (default (-180, 180))
-    lat_bounds -- tuple/list containing latitude bounds (default (-90, 90))
-    select_how -- select data either 'inside' region (ie mask outside; default) or 'outside' region
-    lon_name -- the name of the longitude dimension and coordinate (default 'lon')
-    lat_name -- the name of the longitude dimension and coordinate (default 'lon')
+    Args:
+        xr_data: an xarray Dataset or DataArray, with longitude and latitude dimensions
+        lon_bounds: tuple/list containing longitude bounds (default (-180, 180))
+        lat_bounds: tuple/list containing latitude bounds (default (-90, 90))
+        select_how: select data either 'inside' region (ie mask outside; default) or
+            'outside' region
+        lon_name: the name of the longitude dimension and coordinate (default 'lon')
+        lat_name: the name of the longitude dimension and coordinate (default 'lon')
 
     Returns:
-    Copy of input object, with masking applied.
+        Copy of input object, with masking applied.
     """
     data = xr_data.copy()
     # If lon_bounds or lat_bounds are set to None, then use defaults
@@ -212,16 +213,16 @@ def xr_area_weighted_stat(xr_data, stat='mean', lon_bounds=None, lat_bounds=None
     """
     Calculate area-weighted mean or sum across globe (default) or a specified region.
 
-    Keyword arguments:
-    xr_data -- an xarray Dataset or DataArray, with longitude and latitude dimensions
-    stat -- statistic to calculate, either 'mean' (default) or 'sum'
-    lon_bounds -- tuple/list containing longitude bounds (default None)
-    lat_bounds -- tuple/list containing latitude bounds (default None)
-    lon_name -- the name of the longitude dimension and coordinate (default 'lon')
-    lat_name -- the name of the longitude dimension and coordinate (default 'lon')
+    Args:
+        xr_data: an xarray Dataset or DataArray, with longitude and latitude dimensions
+        stat: statistic to calculate, either 'mean' (default) or 'sum'
+        lon_bounds: tuple/list containing longitude bounds (default None)
+        lat_bounds: tuple/list containing latitude bounds (default None)
+        lon_name: the name of the longitude dimension and coordinate (default 'lon')
+        lat_name: the name of the longitude dimension and coordinate (default 'lon')
 
     Returns:
-    Area-weighted mean or sum as an xarray Dataset or DataArray
+        Area-weighted mean or sum as an xarray Dataset or DataArray
     """
     # Get grid cell area
     area = xr_area(xr_data, lon_name=lon_name, lat_name=lat_name)

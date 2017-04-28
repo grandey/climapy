@@ -1,15 +1,17 @@
 """
-Test the climapy_xr part of climapy.
+test_climapy_xr:
+    Test the climapy_xr part of climapy.
 
-Designed for use with pytest.
+Usage:
+    Designed for use with pytest.
 
 Contents:
-1. Prerequisite functions
-2. Loading of test data into dictionaries
-3. The test classes
+    1. Prerequisite functions
+    2. Loading of test data into dictionaries
+    3. The test classes
 
-History:
-- 2017-04 - Benjamin S. Grandey
+Author:
+    Benjamin S. Grandey, 2017
 """
 
 import climapy

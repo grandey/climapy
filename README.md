@@ -20,6 +20,9 @@ pytest
     dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day'):
         Convert numbers to array of numpy.datetime64 objects.
 
+    stats_fdr(p_values, alpha=0.10):
+        Control the false discovery rate (FDR). Useful when applying multiple hypothesis tests.
+
     xr_check_lon_lat_match(xr_data_1, xr_data_2, lon_name='lon', lat_name='lat'):
         Check whether longitude and latitude coordinates of xarray Datasets/DataArrays are equal.
 

@@ -19,7 +19,7 @@ class TestConvertToDatetime64:
 
     def test_invalid_calendar(self):
         with pytest.raises(ValueError):
-             climapy.dt_convert_to_datetime64(1, calendar='my_calendar')
+            climapy.dt_convert_to_datetime64(1, calendar='my_calendar')
 
     def test_invalid_units_one(self):
         with pytest.raises(ValueError):

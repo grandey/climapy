@@ -15,7 +15,7 @@ __all__ = ['dt_convert_to_datetime64', ]
 
 def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day'):
     """
-    Convert numbers to array of datetime64 objects.
+    Convert numbers to array of numpy.datetime64 objects.
     
     Args:
         data: single float/int or an array (or other iterable) of floats/ints to be converted.

@@ -17,7 +17,7 @@ __all__ = ['xr_check_lon_lat_match', 'xr_shift_lon', 'xr_area', 'xr_mask_bounds'
 
 def xr_check_lon_lat_match(xr_data_1, xr_data_2, lon_name='lon', lat_name='lat'):
     """
-    Check whether longitude and latitude coordinates are equal.
+    Check whether longitude and latitude coordinates of xarray Datasets/DataArrays are equal.
 
     Args:
         xr_data_1: first xarray Dataset or DataArray, with longitude and latitude dimensions

@@ -13,7 +13,8 @@ import numpy as np
 __all__ = ['dt_convert_to_datetime64', ]
 
 
-def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day'):
+def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day',
+                             min_year=None):
     """
     Convert numbers to array of numpy.datetime64 objects.
     
@@ -23,6 +24,9 @@ def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='
         units: string describing units of input data (default: 'days since 1-1-1 00:00:00').
         calendar: string describing calendar of input data.  Valid calendar options are
             '365_day' (default), 'no_leap' (equivalent to default), and 'gregorian'.
+        min_year: integer specifying minimum year to accept for reference date, derived from units.
+            If the reference year is less than min_year, then the reference year will be changed to
+            min_year. This allows dates to be shifted to be greater than e.g. 1678. (default None)
 
     Returns:
         single datetime64 object or numpy.array of dtype=datetime64.
@@ -32,6 +36,12 @@ def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='
         calendar = '365_day'  # no_leap synonym for 365_day
     if calendar not in ['365_day', 'gregorian']:
         raise ValueError('Invalid calendar. Try "365_day" or "gregorian".')
+    # Check min_year
+    if min_year is None:
+        min_year = -9999.
+    else:
+        if not isinstance(min_year, int):
+            raise ValueError('Invalid min_year. min_year should be an int.')
     # Decompose units string
     if units.split()[0:2] == ['days', 'since']:
         delta = np.timedelta64(24*60*60, 's')  # allow partial days if data contains non-integers
@@ -40,6 +50,9 @@ def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='
     try:
         year, month, day = [int(s) for s in units.split()[2].split('-')]
         hour, minute, second = [int(s) for s in units.split()[3].split(':')]
+        # Ensure that reference year >= min_year
+        if year < min_year:
+            year = min_year
         # Reference datetime64
         ref = np.datetime64('{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}'.format(year, month, day,
                                                                                hour, minute,

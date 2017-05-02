@@ -41,6 +41,10 @@ class TestConvertToDatetime64:
         with pytest.raises(ValueError):
             climapy.dt_convert_to_datetime64(-1)
 
+    def test_invalid_min_year(self):
+        with pytest.raises(ValueError):
+            climapy.dt_convert_to_datetime64(1, min_year=1971.)  # float not int
+
     def test_gregorian_with_int(self):
         result = climapy.dt_convert_to_datetime64(365*10+2, units='days since 1-1-1 00:00:00',
                                                   calendar='gregorian')
@@ -72,5 +76,13 @@ class TestConvertToDatetime64:
                                                   units='days since 2000-01-01 00:00:00',
                                                   calendar='365_day')
         correct = np.array(['2009-12-30', '2010-01-01', '2010-01-03'],
+                           dtype='datetime64')
+        assert np.array_equal(result, correct)
+
+    def test_min_year(self):
+        result = climapy.dt_convert_to_datetime64([3648, 3650, 3652],
+                                                  units='days since 1-1-1 00:00:00',
+                                                  calendar='365_day', min_year=1701)
+        correct = np.array(['1710-12-30', '1711-01-01', '1711-01-03'],
                            dtype='datetime64')
         assert np.array_equal(result, correct)

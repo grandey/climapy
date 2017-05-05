@@ -17,6 +17,10 @@ pytest
 
 ## Functions contained in climapy:
 ```
+    cesm_time_from_bnds(xr_data, min_year=1701):
+        Use mid-points from time_bnds in CESM output data to populate time dimension with
+        numpy.datetime64 values.
+
     dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='365_day'):
         Convert numbers to array of numpy.datetime64 objects.
 

@@ -1,26 +1,27 @@
 # climapy
 
-## Purpose:
+## Purpose
 Support data analysis of climate model data.
 
-## Status:
+## Status
 Work in progress.
 
-## Installation:
+## Installation
 ```
 python setup.py install
 ```
-In addition to installing climapy, this will automatically generate version.py.
+In addition to installing climapy, this will automatically generate version.py which provides
+version information including the git revision.
 The following dependencies are specified in setup.py: numpy and xarray.
 
-## Testing:
+## Testing
 Tests, for use with pytest, are contained in tests/.
-The tests can be run from the root directory in the repository:
+The tests can be run from the root directory of the repository:
 ```
 pytest
 ```
 
-## Functions contained in climapy:
+## Functions contained in climapy
 ```
     cesm_time_from_bnds(xr_data, min_year=1701):
         Use mid-points from time_bnds in CESM output data to populate time dimension with
@@ -50,5 +51,5 @@ pytest
         Calculate area-weighted mean or sum across globe (default) or a specified region.
 ```
 
-## Author:
+## Author
 Benjamin S. Grandey, 2017

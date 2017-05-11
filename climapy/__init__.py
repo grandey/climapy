@@ -38,3 +38,4 @@ from .climapy_cesm import *
 from .climapy_dt import *
 from .climapy_stats import *
 from .climapy_xr import *
+from .version import *

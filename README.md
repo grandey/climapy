@@ -7,7 +7,9 @@ Support data analysis of climate model data.
 Work in progress.
 
 ## Installation:
-Since I anticipate that I will be the only user of **climapy**, I have not created a setup.py file. Instead, I just include a symbolic link to a local copy of **climapy** in a directory in my $PYTHONPATH.
+```
+python setup.py install
+```
 
 ## Testing:
 Tests, for use with pytest, are contained in tests/. The tests can be run from the root directory in the repository:
@@ -16,7 +18,6 @@ pytest
 ```
 
 ## Functions contained in climapy:
-```
     cesm_time_from_bnds(xr_data, min_year=1701):
         Use mid-points from time_bnds in CESM output data to populate time dimension with
         numpy.datetime64 values.
@@ -43,7 +44,6 @@ pytest
     xr_area_weighted_stat(xr_data, stat='mean', lon_bounds=None, lat_bounds=None,
                           lon_name='lon', lat_name='lat'):
         Calculate area-weighted mean or sum across globe (default) or a specified region.
-```
 
 ## Author:
 Benjamin S. Grandey, 2017

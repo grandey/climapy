@@ -46,6 +46,7 @@ setup(
     long_description=long_description,
     version=version,
     author='Benjamin S. Grandey',
+    author_email='benjamin@smart.mit.edu',
     url='https://github.com/grandey/climapy',
     license='MIT',
     classifiers=['Programming Language :: Python :: 3',

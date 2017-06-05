@@ -1,7 +1,6 @@
 # climapy
 
-[![Build Status]
-(https://travis-ci.org/grandey/climapy.svg?branch=master)](https://travis-ci.org/grandey/climapy)
+[![Build Status](https://travis-ci.org/grandey/climapy.svg?branch=master)](https://travis-ci.org/grandey/climapy)
 
 ## Purpose
 Support data analysis of climate model data.

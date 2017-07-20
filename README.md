@@ -55,3 +55,9 @@ pytest
 
 ## Author
 Benjamin S. Grandey, 2017
+
+## Acknowledgements
+This software has been developed in order to facilitate research conducted at the
+Singapore-MIT Alliance for Research and Technology (SMART), supported by the National Research
+Foundation (NRF), Prime Minister’s Office, Singapore under its Campus for Research Excellence and
+Technological Enterprise (CREATE) programme.

@@ -23,7 +23,7 @@ def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='
             Negative values cannot be accepted.
         units: string describing units of input data (default: 'days since 1-1-1 00:00:00').
         calendar: string describing calendar of input data.  Valid calendar options are
-            '365_day' (default), 'no_leap' (equivalent to default), and 'gregorian'.
+            '365_day' (default), 'no_leap'/'noleap' (equivalent to default), and 'gregorian'.
         min_year: integer specifying minimum year to accept for reference date, derived from units.
             If the reference year is less than min_year, then the reference year will be changed to
             min_year. This allows dates to be shifted to be greater than e.g. 1678. (default None)
@@ -32,7 +32,7 @@ def dt_convert_to_datetime64(data, units='days since 1-1-1 00:00:00', calendar='
         single datetime64 object or numpy.array of dtype=datetime64.
     """
     # Check calendar
-    if calendar == 'no_leap':
+    if calendar in ['no_leap', 'noleap']:
         calendar = '365_day'  # no_leap synonym for 365_day
     if calendar not in ['365_day', 'gregorian']:
         raise ValueError('Invalid calendar. Try "365_day" or "gregorian".')

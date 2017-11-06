@@ -30,7 +30,10 @@ def cesm_time_from_bnds(xr_data, min_year=1701):
     try:
         time_bnds_mid = data['time_bnds'].mean(dim='bnds')
     except ValueError:
-        time_bnds_mid = data['time_bnds'].mean(dim='nb2')
+        try:
+            time_bnds_mid = data['time_bnds'].mean(dim='nb2')
+        except ValueError:
+            time_bnds_mid = data['time_bnds'].mean(dim='nbnd')
     data['time'].values = climapy.dt_convert_to_datetime64(time_bnds_mid,
                                                            units=data['time'].units,
                                                            calendar=data['time'].calendar,

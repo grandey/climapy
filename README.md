@@ -5,9 +5,6 @@
 ## Purpose
 Support data analysis of climate model data.
 
-## Status
-Work in progress.
-
 ## Installation
 ```
 python setup.py install

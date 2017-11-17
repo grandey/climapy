@@ -20,15 +20,25 @@ description = 'Support data analysis of climate model data.'
 with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
-# Version - add info about git revision
+# Version
 version_prefix = '0.0.1'
-with Popen(['git', 'describe', '--always'], stdout=PIPE) as p:
-    git_revision = p.stdout.read().strip().decode('utf-8')
+is_released = False  # will this be a release?
+# Info about git revision - if this will not be a release
+if is_released:
+    git_revision = ''
+else:
+    with Popen(['git', 'describe', '--always'], stdout=PIPE) as p:
+        git_revision = p.stdout.read().strip().decode('utf-8')
+# Check for uncommitted changes
 with Popen(['git', 'status', '--porcelain'], stdout=PIPE) as p:
     git_changes = p.stdout.read().strip().decode('utf-8')
     if git_changes:
         git_revision = '{}.uncommitted_changes'.format(git_revision)
-version = '{}+{}'.format(version_prefix, git_revision)
+# Add git revision / uncommitted changes info to version
+if git_revision:
+    version = '{}+{}'.format(version_prefix, git_revision)
+else:
+    version = version_prefix
 
 # Create of version.py
 version_filename = path.join(here, 'climapy/version.py')

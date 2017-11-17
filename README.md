@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/grandey/climapy.svg?branch=master)](https://travis-ci.org/grandey/climapy)
 
+[![DOI](https://zenodo.org/badge/88696807.svg)](https://zenodo.org/badge/latestdoi/88696807)
+
 ## Purpose
 Support data analysis of climate model data.
 

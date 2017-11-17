@@ -22,7 +22,7 @@ with open(path.join(here, 'README.md')) as f:
 
 # Version
 version_prefix = '0.1.0'
-is_released = True  # will this be a release?
+is_released = False  # will this be a release?
 # Info about git revision - if this will not be a release
 if is_released:
     git_revision = ''
